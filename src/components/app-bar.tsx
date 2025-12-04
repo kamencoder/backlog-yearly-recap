@@ -50,7 +50,7 @@ export default function AppBar() {
     a.href = URL.createObjectURL(new Blob([JSON.stringify(userDataToSave, null, 2)], {
       type: "text/plain"
     }));
-    a.setAttribute("download", "backlog-yearly-summary-user-data.json");
+    a.setAttribute("download", "backlog-yearly-recap-user-data.json");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -211,7 +211,7 @@ export default function AppBar() {
               </ListItemButton>
             </ListItem>
             <ListItem sx={{ justifySelf: 'end' }} disablePadding>
-              <ListItemButton onClick={() => window.open('https://github.com/kamencoder/backlog-yearly-summary/issues', '_blank')}>
+              <ListItemButton onClick={() => window.open('https://github.com/kamencoder/backlog-yearly-recap/issues', '_blank')}>
                 <ListItemIcon>
                   <BugReport />
                 </ListItemIcon>
