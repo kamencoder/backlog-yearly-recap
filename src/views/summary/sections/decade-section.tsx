@@ -1,11 +1,10 @@
 import { Card, CardContent, Stack, Typography, Grid, Box, IconButton, Menu, MenuItem } from '@mui/material';
 import { Settings } from '@mui/icons-material';
-import { useState } from 'react';
+import { useMemo, useState, useContext } from 'react';
 import InfoIcon from '../../../components/info-icon';
-import { PieChart } from '@mui/x-charts';
+import { PieChart, BarChart } from '@mui/x-charts';
 import { getPlayTimeInHours } from '../../../data/summarizer';
 import { blue, brown, green, grey, orange, pink, purple, yellow } from '@mui/material/colors';
-import { useContext } from 'react';
 import { DataContext } from '../../../data/data-context';
 
 const decadeColors: Record<string, string> = {
@@ -34,6 +33,42 @@ export const DecadeSection = () => {
     editViewSettings({ sectionSettings: { decade: { visible: false } } });
     handleMenuClose();
   };
+
+  const yearFinishedTotals = useMemo(() => {
+    if (!summary?.games?.length) return [];
+
+    const totals: Record<string, { releaseYearLabel: string; totalFinished: number; totalComplete: number, totalPlayed: number }> = {};
+
+    summary.games.forEach(game => {
+      if (!game.finishedThisYear) return;
+      if (game.completion !== 'Beaten' && game.completion !== 'Completed') return;
+
+      const releaseYearLabel = game.releaseYear ? game.releaseYear.toString() : 'Unknown';
+      totals[releaseYearLabel] = totals[releaseYearLabel] || { releaseYearLabel, totalFinished: 0, totalComplete: 0, totalPlayed: 0 };
+
+      if (game.completion === 'Beaten' || game.completion === 'Completed') {
+        totals[releaseYearLabel].totalFinished += 1;
+      }
+      if (game.completion === 'Completed') {
+        totals[releaseYearLabel].totalComplete += 1;
+      }
+    });
+    // Object.keys(totals).forEach(key => {
+    //   const totalFinished = totals[key].totalFinished;
+    //   // Random extra games played, can be zero so totalPlayed may equal totalFinished
+    //   const totalPlayed = totalFinished + Math.floor(Math.random() * 2);
+    //   totals[key].totalPlayed = totalPlayed;
+    // });
+
+    return Object.values(totals).sort((a, b) => {
+      const aYear = parseInt(a.releaseYearLabel, 10);
+      const bYear = parseInt(b.releaseYearLabel, 10);
+      if (Number.isNaN(aYear) && Number.isNaN(bYear)) return 0;
+      if (Number.isNaN(aYear)) return 1;
+      if (Number.isNaN(bYear)) return -1;
+      return aYear - bYear;
+    });
+  }, [summary?.games]);
 
   if (!summary) {
     return null; // or some loading state
@@ -115,6 +150,38 @@ export const DecadeSection = () => {
               </Grid>
             )}
           </Grid>
+          {yearFinishedTotals.length > 0 && (
+            <Grid container spacing={2} sx={{ marginTop: 2 }}>
+              <Grid size={12}>
+                <Box>
+                  <Typography style={{ textAlign: 'center' }} component="h3" id="decade-finished-by-year-title">Games Finished by Release Year</Typography>
+                  <BarChart
+                    dataset={yearFinishedTotals as any}
+                    yAxis={[{ dataKey: 'releaseYearLabel', scaleType: 'band', width: 80, barGapRatio: -1 }]}
+                    xAxis={[{
+                      label: 'Number of Games',
+                      tickMinStep: 1,
+                      domainLimit: (min, max) => ({
+                        min: min,
+                        // If data max is < 10, use 10. If data max is > 10, use data max.
+                        max: Math.max(max, 20),
+                      }),
+                    }]}
+                    series={[
+                      // { dataKey: 'totalPlayed', color: yellow[500], label: 'Played' },
+                      { dataKey: 'totalFinished', color: green[500], label: 'Finished' },
+                      { dataKey: 'totalComplete', color: blue[500], label: 'Completed' },
+                    ]}
+
+                    layout="horizontal"
+                    sx={{ height: `${25 * (yearFinishedTotals.length < 8 ? 8 : yearFinishedTotals.length)}px` }}
+                    aria-label="Bar chart showing games played, finished, and completed by release year"
+                    aria-labelledby="decade-finished-by-year-title"
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          )}
         </CardContent>
       </Card>
     </Grid>
